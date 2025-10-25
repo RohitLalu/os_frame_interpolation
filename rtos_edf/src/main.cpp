@@ -23,6 +23,8 @@ TaskTimingInfo Task_1, Task_2;
 
 void setup() {
   // xtask creations here
+  Serial.begin(115200);
+  Serial.println("Beginning tasks");
   xTaskCreate(Task1,"T1",100,NULL,1,&Task_1.handle);
   xTaskCreate(Task2,"T2",100,NULL,2,&Task_2.handle);
 }
@@ -40,11 +42,11 @@ float exp_avg(float time_quantum,float old_guess){
 void Task1(void* param){
   (void) param;
   Serial.println("HI");
-  vTaskDelay(1000/portMAX_DELAY);
+  vTaskDelay(1000/portMAX_DELAY);//1 sec delay
   
 }
 void Task2(void* param){
   (void) param;
   Serial.println("yo");
-  vTaskDelay(500/portMAX_DELAY);
+  vTaskDelay(500/portMAX_DELAY); //0.5 sec delay
 }

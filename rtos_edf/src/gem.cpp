@@ -20,7 +20,7 @@ typedef struct {
     TaskHandle_t handle;
     const char* taskName;
     TickType_t deadline; // Absolute deadline in ticks
-    TickType_t period; // Period of the task in ticks
+    TickType_t period; // Period of the task in ticks: always constant
     
     // For EMA calculation
     float emaExecTime; 
@@ -164,92 +164,93 @@ void taskScheduler(void *pvParameters) {
     }
 }
 
-// --- Worker Task: Simulate Image Capture ---
-void taskCapture(void *pvParameters) {
-    TaskControlBlock_t* myTCB = (TaskControlBlock_t*)pvParameters;
-    TickType_t xLastWakeTime = xTaskGetTickCount();
+// // --- Worker Task: Simulate Image Capture ---
+// void taskCapture(void *pvParameters) {
+//     TaskControlBlock_t* myTCB = (TaskControlBlock_t*)pvParameters;
+//     TickType_t xLastWakeTime = xTaskGetTickCount();
 
-    for (;;) {
-        TickType_t startTime = xTaskGetTickCount();
+//     for (;;) {
+//         TickType_t startTime = xTaskGetTickCount();
 
-        // --- 1. SIMULATE WORK ---
-        // Simulate a task that takes ~10-15ms
-        long iterations = 50000 + (rand() % 10000); // Variable workload
-        for (volatile long i = 0; i < iterations; i++) {}
+//         // --- 1. SIMULATE WORK ---
+//         // Simulate a task that takes ~10-15ms
+//         long iterations = 50000 + (rand() % 10000); // Variable workload
+//         for (volatile long i = 0; i < iterations; i++) {}
         
-        TickType_t endTime = xTaskGetTickCount();
-        TickType_t actualExecTime = endTime - startTime;
+//         TickType_t endTime = xTaskGetTickCount();
+//         TickType_t actualExecTime = endTime - startTime;
 
-        // --- 2. UPDATE TCB (Critical Section) ---
-        taskENTER_CRITICAL();
-        // Update EMA
-        myTCB->emaExecTime = (EMA_ALPHA * actualExecTime) + ((1.0 - EMA_ALPHA) * myTCB->emaExecTime);
-        myTCB->estimatedExecTime = (TickType_t)ceil(myTCB->emaExecTime);
-        // Set next absolute deadline
-        myTCB->deadline = xLastWakeTime + myTCB->period;
-        taskEXIT_CRITICAL();
+//         // --- 2. UPDATE TCB (Critical Section) ---
+//         taskENTER_CRITICAL();
+//         // Update EMA
+//         myTCB->emaExecTime = (EMA_ALPHA * actualExecTime) + ((1.0 - EMA_ALPHA) * myTCB->emaExecTime);
+//         myTCB->estimatedExecTime = (TickType_t)ceil(myTCB->emaExecTime);
+//         // Set next absolute deadline
+//         myTCB->deadline = xLastWakeTime + myTCB->period;
+//         taskEXIT_CRITICAL();
 
-        // --- 3. WAIT FOR NEXT PERIOD ---
-        vTaskDelayUntil(&xLastWakeTime, myTCB->period);
-    }
+//         // --- 3. WAIT FOR NEXT PERIOD ---
+//         vTaskDelayUntil(&xLastWakeTime, myTCB->period);
+//     }
+// }
+
+// // --- Worker Task: Simulate Interpolation ---
+// void taskInterpolate(void *pvParameters) {
+//     TaskControlBlock_t* myTCB = (TaskControlBlock_t*)pvParameters;
+//     TickType_t xLastWakeTime = xTaskGetTickCount();
+
+//     for (;;) {
+//         TickType_t startTime = xTaskGetTickCount();
+        
+//         // --- 1. SIMULATE WORK ---
+//         // Simulate a shorter, more frequent task (~5-8ms)
+//         long iterations = 20000 + (rand() % 5000); 
+//         for (volatile long i = 0; i < iterations; i++) {}
+        
+//         TickType_t endTime = xTaskGetTickCount();
+//         TickType_t actualExecTime = endTime - startTime;
+
+//         // --- 2. UPDATE TCB (Critical Section) ---
+//         taskENTER_CRITICAL();
+//         myTCB->emaExecTime = (EMA_ALPHA * actualExecTime) + ((1.0 - EMA_ALPHA) * myTCB->emaExecTime);
+//         myTCB->estimatedExecTime = (TickType_t)ceil(myTCB->emaExecTime);
+//         myTCB->deadline = xLastWakeTime + myTCB->period;
+//         taskEXIT_CRITICAL();
+        
+//         // --- 3. WAIT FOR NEXT PERIOD ---
+//         vTaskDelayUntil(&xLastWakeTime, myTCB->period);
+//     }
+// }
+
+// // --- Worker Task: Simulate Display ---
+// void taskDisplay(void *pvParameters) {
+//     TaskControlBlock_t* myTCB = (TaskControlBlock_t*)pvParameters;
+//     TickType_t xLastWakeTime = xTaskGetTickCount();
+
+//     for (;;) {
+//         TickType_t startTime = xTaskGetTickCount();
+        
+//         // --- 1. SIMULATE WORK ---
+//         // Simulate a slow I/O task (~20ms)
+//         long iterations = 70000 + (rand() % 10000); 
+//         for (volatile long i = 0; i < iterations; i++) {}
+        
+//         TickType_t endTime = xTaskGetTickCount();
+//         TickType_t actualExecTime = endTime - startTime;
+        
+//         // --- 2. UPDATE TCB (Critical Section) ---
+//         taskENTER_CRITICAL();
+//         myTCB->emaExecTime = (EMA_ALPHA * actualExecTime) + ((1.0 - EMA_ALPHA) * myTCB->emaExecTime);
+//         myTCB->estimatedExecTime = (TickType_t)ceil(myTCB->emaExecTime);
+//         myTCB->deadline = xLastWakeTime + myTCB->period;
+//         taskEXIT_CRITICAL();
+        
+//         // --- 3. WAIT FOR NEXT PERIOD ---
+//         vTaskDelayUntil(&xLastWakeTime, myTCB->period);
+//     }
+// }
+
+
+void loop() {
+    //nothing here
 }
-
-// --- Worker Task: Simulate Interpolation ---
-void taskInterpolate(void *pvParameters) {
-    TaskControlBlock_t* myTCB = (TaskControlBlock_t*)pvParameters;
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-
-    for (;;) {
-        TickType_t startTime = xTaskGetTickCount();
-        
-        // --- 1. SIMULATE WORK ---
-        // Simulate a shorter, more frequent task (~5-8ms)
-        long iterations = 20000 + (rand() % 5000); 
-        for (volatile long i = 0; i < iterations; i++) {}
-        
-        TickType_t endTime = xTaskGetTickCount();
-        TickType_t actualExecTime = endTime - startTime;
-
-        // --- 2. UPDATE TCB (Critical Section) ---
-        taskENTER_CRITICAL();
-        myTCB->emaExecTime = (EMA_ALPHA * actualExecTime) + ((1.0 - EMA_ALPHA) * myTCB->emaExecTime);
-        myTCB->estimatedExecTime = (TickType_t)ceil(myTCB->emaExecTime);
-        myTCB->deadline = xLastWakeTime + myTCB->period;
-        taskEXIT_CRITICAL();
-        
-        // --- 3. WAIT FOR NEXT PERIOD ---
-        vTaskDelayUntil(&xLastWakeTime, myTCB->period);
-    }
-}
-
-// --- Worker Task: Simulate Display ---
-void taskDisplay(void *pvParameters) {
-    TaskControlBlock_t* myTCB = (TaskControlBlock_t*)pvParameters;
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-
-    for (;;) {
-        TickType_t startTime = xTaskGetTickCount();
-        
-        // --- 1. SIMULATE WORK ---
-        // Simulate a slow I/O task (~20ms)
-        long iterations = 70000 + (rand() % 10000); 
-        for (volatile long i = 0; i < iterations; i++) {}
-        
-        TickType_t endTime = xTaskGetTickCount();
-        TickType_t actualExecTime = endTime - startTime;
-        
-        // --- 2. UPDATE TCB (Critical Section) ---
-        taskENTER_CRITICAL();
-        myTCB->emaExecTime = (EMA_ALPHA * actualExecTime) + ((1.0 - EMA_ALPHA) * myTCB->emaExecTime);
-        myTCB->estimatedExecTime = (TickType_t)ceil(myTCB->emaExecTime);
-        myTCB->deadline = xLastWakeTime + myTCB->period;
-        taskEXIT_CRITICAL();
-        
-        // --- 3. WAIT FOR NEXT PERIOD ---
-        vTaskDelayUntil(&xLastWakeTime, myTCB->period);
-    }
-}
-
-// Arduino loop()
-// Not used when FreeRTOS is running.
-void loop() {}
