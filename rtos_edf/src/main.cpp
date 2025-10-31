@@ -2,7 +2,8 @@
 #include "esp_camera.h"
 #define CAMERA_MODEL_AI_THINKER
 #include "camera_pins.h"
-#include "cam_tasks.cpp"
+#include "cam_tasks.h"
+#include "task_config.h"
 
 // --- Function to initialize the camera ---
 void init_camera() {
@@ -21,8 +22,8 @@ void init_camera() {
   config.pin_pclk = PCLK_GPIO_NUM;
   config.pin_vsync = VSYNC_GPIO_NUM;
   config.pin_href = HREF_GPIO_NUM;
-  config.pin_sscb_sda = SIOD_GPIO_NUM;
-  config.pin_sscb_scl = SIOC_GPIO_NUM;
+  config.pin_sccb_sda = SIOD_GPIO_NUM;
+  config.pin_sccb_scl = SIOC_GPIO_NUM;
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
@@ -57,14 +58,24 @@ void send_data() {
   Serial.write(fb->buf, fb->len);
   // 5. CRITICAL: Return the frame buffer to be reused
   esp_camera_fb_return(fb);
-  // 6. Wait for 333ms to get 3 FPS
-  delay(333);
+  // 6. Wait for 500ms to get 2 FPS
+  delay(500);
 }
 
 
 void blink_work(){
   digitalWrite(4,HIGH); 
   delay(1000);
+  digitalWrite(4,LOW);
+  delay(1000);
+}
+
+void blink_doesnt_work(){
+  digitalWrite(4,HIGH); 
+  delay(3000);
+  digitalWrite(4,LOW);
+  delay(3000);
+  digitalWrite(4,HIGH);
 }
 
 //Running stuff
@@ -73,8 +84,45 @@ void setup() {
   init_camera();
   pinMode(4,OUTPUT);//indicates serial works and camera is initialised
   blink_work();
+  blink_work();
+
 
   //start with tasks here
+xTaskCreate(
+        CaptureImage,
+        CaptureTask.taskName,
+        configMINIMAL_STACK_SIZE,
+        (void*)&CAM_TASKLIST[0], 
+        PRIO_WORKER_BASE,
+        &CAM_TASKLIST[0].handle 
+    );
 
-  //Serial.println("Camera OK. Starting stream.");
+  xTaskCreate(
+        Interpolator,
+        InterpolateTask.taskName,
+        configMINIMAL_STACK_SIZE,
+        (void*)&CAM_TASKLIST[1], 
+        PRIO_WORKER_BASE,
+        &CAM_TASKLIST[1].handle 
+    );
+  xTaskCreate(
+        Transmitter,
+        TransmitTask.taskName,
+        configMINIMAL_STACK_SIZE,
+        (void*)&CAM_TASKLIST[2], 
+        PRIO_WORKER_BASE,
+        &CAM_TASKLIST[2].handle 
+    );
+
+  xTaskCreate(
+        Scheduler,
+        "SchedulerTasks",
+        configMINIMAL_STACK_SIZE,
+        NULL,PRIO_EDF_MANAGER,
+        NULL
+    );
+}
+
+void loop(){
+  //nothing here
 }
