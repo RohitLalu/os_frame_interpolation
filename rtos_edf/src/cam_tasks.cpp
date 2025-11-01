@@ -72,8 +72,8 @@ void Scheduler(void *pvParameters) {
 camera_fb_t *fb = NULL; //global frame buffer pointer
 
 void CaptureImage(void* pvParameters){
+  TickType_t xlastWakeTime = xTaskGetTickCount();
     for(;;){        
-    if (xSemaphoreTake(g_task_list_mutex, portMAX_DELAY) == pdTRUE) {
         //printf("Capture image running");
         xSemaphoreGive(g_task_list_mutex);
         if (xSemaphoreTake(g_framebuf_mutex, portMAX_DELAY) == pdTRUE) {
@@ -85,22 +85,21 @@ void CaptureImage(void* pvParameters){
             }
             xSemaphoreGive(g_framebuf_mutex);
         }
-    }
+    vTaskDelayUntil(&xlastWakeTime, (TickType_t)pdMS_TO_TICKS(CAPTURE_PERIOD_MS));
     }
 }
 
 void Interpolator(void* pvParameters){
+  TickType_t xlastWakeTime = xTaskGetTickCount();
     for(;;){        
-    if (xSemaphoreTake(g_task_list_mutex, portMAX_DELAY) == pdTRUE) {
         //printf("Interpolate image running");
-      xSemaphoreGive(g_task_list_mutex);
-    }
+    vTaskDelayUntil(&xlastWakeTime, (TickType_t)pdMS_TO_TICKS(INTERPOLATE_PERIOD_MS));
     }
 }
 
 void Transmitter(void* pvParameters){
+  TickType_t xlastWakeTime = xTaskGetTickCount();
     for(;;){        
-    if (xSemaphoreTake(g_task_list_mutex, portMAX_DELAY) == pdTRUE) {
         //printf("Transmission of image running");
         xSemaphoreGive(g_task_list_mutex);
 
@@ -116,6 +115,6 @@ void Transmitter(void* pvParameters){
             }
             xSemaphoreGive(g_framebuf_mutex);
         }
-    }
+    vTaskDelayUntil(&xlastWakeTime, (TickType_t)pdMS_TO_TICKS(TRANSMIT_PERIOD_MS));
     }
 }
