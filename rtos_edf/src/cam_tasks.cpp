@@ -79,6 +79,11 @@ void CaptureImage(void* pvParameters){
     //nothing
     //delay(1000);
     for(;;){
+        camera_fb_t *fb = esp_camera_fb_get()
+        if (fb) {
+            xQueueSend(frameQueue, &fb, portMAX_DELAY);
+        }
+        vTaskDelay(pdMS_TO_TICKS(66));
     printf("Capture image running");
     }
 }
