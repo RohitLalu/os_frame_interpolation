@@ -17,9 +17,7 @@ typedef struct {
     TickType_t   deadline; // absolute deadline or period in ticks
 } EdfTaskInfo;
 
-// Globals are defined in cam_tasks.cpp. Declare them extern here to avoid
-// multiple-definition linker errors and to keep the type consistent across
-// translation units.
+// Globals are defined in cam_tasks.cpp
 extern EdfTaskInfo CaptureTask;
 extern EdfTaskInfo InterpolateTask;
 extern EdfTaskInfo TransmitTask;

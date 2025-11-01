@@ -14,7 +14,7 @@
 // Task periods and deadlines (in milliseconds)
 #define CAPTURE_PERIOD_MS 500    // 2 fps
 #define INTERPOLATE_PERIOD_MS 600 // 1.6 ps
-#define TRANSMIT_PERIOD_MS 250   // 4 fps
+#define TRANSMIT_PERIOD_MS 1000   // 1 fps
 #define SCHEDULER_PERIOD_MS 10   // 10ms
 
 #endif // TASK_CONFIG_H

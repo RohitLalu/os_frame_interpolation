@@ -1,10 +1,11 @@
+#jpeg format: dont use this file
 import serial
 import cv2
 import numpy as np
 import struct
 
 # --- Configuration ---
-SERIAL_PORT = "COM3"  # Change this to your FTDI's port
+SERIAL_PORT = "/dev/cu.usbserial-A5XK3RJT"  # Change this to your FTDI's port
 BAUD_RATE = 921600
 START_MARKER = b'*S*'
 # ---------------------

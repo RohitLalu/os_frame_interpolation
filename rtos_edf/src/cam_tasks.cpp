@@ -6,6 +6,16 @@
 #include "cam_tasks.h"
 #include "task_config.h"
 
+EdfTaskInfo CaptureTask = {NULL, "Capture", pdMS_TO_TICKS(CAPTURE_PERIOD_MS)};
+EdfTaskInfo InterpolateTask = {NULL, "Interpolate", pdMS_TO_TICKS(INTERPOLATE_PERIOD_MS)};
+EdfTaskInfo TransmitTask = {NULL, "Transmit", pdMS_TO_TICKS(TRANSMIT_PERIOD_MS)};
+EdfTaskInfo SchedulerTask = {NULL, "Scheduler", pdMS_TO_TICKS(SCHEDULER_PERIOD_MS)};
+
+EdfTaskInfo CAM_TASKLIST[NUM_MANAGED_TASKS] = {
+    CaptureTask,
+    InterpolateTask,
+    TransmitTask
+};
 
 camera_fb_t *frameA = NULL;
 camera_fb_t *frameB = NULL;
@@ -66,7 +76,7 @@ void Scheduler(void *pvParameters) {
     }
 }
 
--
+
 void CaptureImage(void *pvParameters) {
     TickType_t xLastWakeTime = xTaskGetTickCount();
 
