@@ -12,9 +12,9 @@
 #define PRIO_WORKER_BASE 3
 
 // Task periods and deadlines (in milliseconds)
-#define CAPTURE_PERIOD_MS 500    // 2fps
-#define INTERPOLATE_PERIOD_MS 600 // 60 ps
-#define TRANSMIT_PERIOD_MS 700   // 10 PS
+#define CAPTURE_PERIOD_MS 500    // 2 fps
+#define INTERPOLATE_PERIOD_MS 600 // 1.6 ps
+#define TRANSMIT_PERIOD_MS 250   // 4 fps
 #define SCHEDULER_PERIOD_MS 10   // 10ms
 
 #endif // TASK_CONFIG_H

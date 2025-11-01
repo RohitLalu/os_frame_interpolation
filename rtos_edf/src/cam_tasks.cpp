@@ -1,41 +1,38 @@
+#include <Arduino.h>
+#include "esp_camera.h"
+#define CAMERA_MODEL_AI_THINKER
+#include "camera_pins.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/queue.h>
 #include <freertos/semphr.h>
 #include <freertos/timers.h>
-
-#define NUM_MANAGED_TASKS 3 //excluding scheduler
-//PRIORITIES
-#define PRIO_EDF_MANAGER (configMAX_PRIORITIES - 1) 
-#define PRIO_WORKER_HIGH (configMAX_PRIORITIES - 2) 
-#define PRIO_WORKER_BASE 3
-//DEADLINES AND PERIODS
-#define CAPTURE_PERIOD_MS 500 // 2fps
-#define INTERPOLATE_PERIOD_MS 600 // 60 ps
-#define TRANSMIT_PERIOD_MS 700 // 10 PS
-#define SCHEDULER_PERIOD_MS 10 //10ms
+#include "cam_tasks.h"
+#include "task_config.h"
 
 void Scheduler (void *pvParameters);
 void CaptureImage (void *pvParameters);
 void Interpolator (void *pvParameters);
 void Transmitter (void *pvParameters);
 
+EdfTaskInfo CaptureTask = {NULL, "CaptureImages", pdMS_TO_TICKS(CAPTURE_PERIOD_MS)};
+EdfTaskInfo InterpolateTask = {NULL, "InterpolateImages", pdMS_TO_TICKS(INTERPOLATE_PERIOD_MS)};
+EdfTaskInfo TransmitTask = {NULL, "TransmitImages", pdMS_TO_TICKS(TRANSMIT_PERIOD_MS)};
+EdfTaskInfo SchedulerTask = {NULL, "SchedulerTask", pdMS_TO_TICKS(SCHEDULER_PERIOD_MS)};
 
-//pcb block struct
-typedef struct {
-    TaskHandle_t handle;
-    const char* taskName;
-    TickType_t   deadline; //deadline itself is period
-}EdfTaskInfo;
+EdfTaskInfo CAM_TASKLIST[NUM_MANAGED_TASKS] = {CaptureTask, InterpolateTask, TransmitTask}; // don't include scheduler here
 
-EdfTaskInfo CaptureTask = {NULL,"CaptureImages",pdMS_TO_TICKS(CAPTURE_PERIOD_MS)};
-EdfTaskInfo InterpolateTask = {NULL,"InterpolateImages",pdMS_TO_TICKS(INTERPOLATE_PERIOD_MS)};;
-EdfTaskInfo TransmitTask = {NULL,"TransmitImages",pdMS_TO_TICKS(TRANSMIT_PERIOD_MS)};
-
-EdfTaskInfo CAM_TASKLIST[NUM_MANAGED_TASKS]={CaptureTask,InterpolateTask,TransmitTask}; //dont include scheduler here
-
-// A mutex to protect the list
+// Initialize mutexes in setup or before starting tasks
 SemaphoreHandle_t g_task_list_mutex;
+SemaphoreHandle_t g_framebuf_mutex;
+void init_mutexes() {
+    g_task_list_mutex = xSemaphoreCreateMutex();
+    g_framebuf_mutex = xSemaphoreCreateMutex();
+    if (g_task_list_mutex == NULL || g_framebuf_mutex == NULL) {
+        Serial.println("Error: Could not create mutexes!");
+        while(1); // Halt if mutex creation fails
+    }
+}
 
 void Scheduler(void *pvParameters) {
   const TickType_t xFrequency = pdMS_TO_TICKS(SCHEDULER_PERIOD_MS); //runs every 10 ms
@@ -43,10 +40,8 @@ void Scheduler(void *pvParameters) {
 
   for (;;) {
     if (xSemaphoreTake(g_task_list_mutex, portMAX_DELAY) == pdTRUE) {
-      
     int size_TASKLIST = sizeof(CAM_TASKLIST)/sizeof(CAM_TASKLIST[0]);
       // Sort by the earliest deadline
-    //   std::sort(TASKLIST.begin(), TASKLIST.end(), compareByDeadline);
       EdfTaskInfo temp_task;
       for (int i=0;i<size_TASKLIST;i++){
         temp_task=CAM_TASKLIST[i];
@@ -58,7 +53,6 @@ void Scheduler(void *pvParameters) {
             }
         }
       }
-
       // Earliest deadline gets highest priority
       for (int i = 0; i < size_TASKLIST; ++i) {
         UBaseType_t newPriority = PRIO_WORKER_HIGH - i;
@@ -75,26 +69,53 @@ void Scheduler(void *pvParameters) {
 }
 }
 
+camera_fb_t *fb = NULL; //global frame buffer pointer
+
 void CaptureImage(void* pvParameters){
-    //nothing
-    //delay(1000);
-    for(;;){
-    printf("Capture image running");
+    for(;;){        
+    if (xSemaphoreTake(g_task_list_mutex, portMAX_DELAY) == pdTRUE) {
+        //printf("Capture image running");
+        xSemaphoreGive(g_task_list_mutex);
+        if (xSemaphoreTake(g_framebuf_mutex, portMAX_DELAY) == pdTRUE) {
+            fb = esp_camera_fb_get();
+            if (!fb) {
+                //capture failed, release mutex and continue
+                xSemaphoreGive(g_framebuf_mutex);
+                continue;
+            }
+            xSemaphoreGive(g_framebuf_mutex);
+        }
+    }
     }
 }
 
 void Interpolator(void* pvParameters){
-    //nothing
-    //delay(1000);
-    for(;;){
-    printf("Interpolation running");
+    for(;;){        
+    if (xSemaphoreTake(g_task_list_mutex, portMAX_DELAY) == pdTRUE) {
+        //printf("Interpolate image running");
+      xSemaphoreGive(g_task_list_mutex);
+    }
     }
 }
 
 void Transmitter(void* pvParameters){
-    //nothing
-    //delay(1000);
-    for(;;){
-    printf("Transmission running");
-}
+    for(;;){        
+    if (xSemaphoreTake(g_task_list_mutex, portMAX_DELAY) == pdTRUE) {
+        //printf("Transmission of image running");
+        xSemaphoreGive(g_task_list_mutex);
+
+        // Protect frame buffer access
+        if (xSemaphoreTake(g_framebuf_mutex, portMAX_DELAY) == pdTRUE) {
+            if (fb) {
+                Serial.write("*S*", 3); 
+                uint32_t len = fb->len;
+                Serial.write((uint8_t *)&len, 4);
+                Serial.write(fb->buf, fb->len);
+                esp_camera_fb_return(fb);
+                fb = NULL; // Clear ptr
+            }
+            xSemaphoreGive(g_framebuf_mutex);
+        }
+    }
+    }
 }

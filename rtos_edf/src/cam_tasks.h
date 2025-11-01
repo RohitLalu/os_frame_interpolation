@@ -2,24 +2,30 @@
 #define CAM_TASKS_H
 
 #include <Arduino.h>
+#include "esp_camera.h"
+#define CAMERA_MODEL_AI_THINKER
+#include "camera_pins.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "task_config.h"
 
-// Task structure declarations
-struct TaskItem {
-    const char* taskName;
+// Canonical type definition for EdfTaskInfo. Put the type in the header so all
+// translation units agree on the layout.
+typedef struct {
     TaskHandle_t handle;
-    TickType_t deadline;
-    TickType_t period;
-    uint8_t priority;
-};
+    const char* taskName;
+    TickType_t   deadline; // absolute deadline or period in ticks
+} EdfTaskInfo;
 
-// External declarations of global variables
-extern TaskItem CaptureTask;
-extern TaskItem InterpolateTask;
-extern TaskItem TransmitTask;
-extern TaskItem CAM_TASKLIST[3];
+// Globals are defined in cam_tasks.cpp. Declare them extern here to avoid
+// multiple-definition linker errors and to keep the type consistent across
+// translation units.
+extern EdfTaskInfo CaptureTask;
+extern EdfTaskInfo InterpolateTask;
+extern EdfTaskInfo TransmitTask;
+extern EdfTaskInfo SchedulerTask;
+
+extern EdfTaskInfo CAM_TASKLIST[NUM_MANAGED_TASKS];
 extern SemaphoreHandle_t g_task_list_mutex;
 
 // Function declarations
@@ -27,5 +33,6 @@ void Scheduler(void* parameters);
 void CaptureImage(void* parameters);
 void Interpolator(void* parameters);
 void Transmitter(void* parameters);
+void init_mutexes();
 
 #endif // CAM_TASKS_H

@@ -1,7 +1,4 @@
 #include <Arduino.h>
-#include "esp_camera.h"
-#define CAMERA_MODEL_AI_THINKER
-#include "camera_pins.h"
 #include "cam_tasks.h"
 #include "task_config.h"
 
@@ -27,7 +24,7 @@ void init_camera() {
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
-  config.pixel_format = PIXFORMAT_JPEG; // Output JPEG
+  config.pixel_format = PIXFORMAT_YUV422; // Output YUV422
   
   // QVGA (320x240) is fast and small
   config.frame_size = FRAMESIZE_QVGA;
@@ -40,28 +37,6 @@ void init_camera() {
     ESP.restart();
   }
 }
-
-void send_data() {
-  camera_fb_t *fb = NULL;
-  // 1. Capture a frame
-  fb = esp_camera_fb_get();
-  if (!fb) {
-    //Serial.println("Camera capture failed");
-    return;
-  }
-  // 2. Send the Start Marker ("*S*")
-  Serial.write("*S*", 3); 
-  // 3. Send the 4-byte frame length
-  uint32_t len = fb->len;
-  Serial.write((uint8_t *)&len, 4);
-  // 4. Send the actual JPEG data
-  Serial.write(fb->buf, fb->len);
-  // 5. CRITICAL: Return the frame buffer to be reused
-  esp_camera_fb_return(fb);
-  // 6. Wait for 500ms to get 2 FPS
-  delay(500);
-}
-
 
 void blink_work(){
   digitalWrite(4,HIGH); 
@@ -85,6 +60,7 @@ void setup() {
   pinMode(4,OUTPUT);//indicates serial works and camera is initialised
   blink_work();
   blink_work();
+  init_mutexes();
 
 
   //start with tasks here
