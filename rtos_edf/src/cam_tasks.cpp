@@ -79,6 +79,12 @@ void CaptureImage(void* pvParameters){
     //nothing
     //delay(1000);
     for(;;){
+        camera_fb_t *fb = esp_camera_fb_get();
+        if (fb) {
+            xQueueSend(frameQueue, &fb, portMAX_DELAY);
+        }
+        vTaskDelay(pdMS_TO_TICKS(66)); // approx 15 FPS
+    }
     printf("Capture image running");
     }
 }
@@ -94,7 +100,33 @@ void Interpolator(void* pvParameters){
 void Transmitter(void* pvParameters){
     //nothing
     //delay(1000);
+    camera_fb_t *fb = NULL;
+    
     for(;;){
+        if (xQueueReceive(interpQueue, &fb, portMAX_DELAY) == pdTRUE) {
+
+            if (fb == NULL) {
+                Serial.println("[Transmitter] Received null frame!");
+                continue;
+            }
+            
+            const char *startMarker = "*S*";
+            Serial.write(startMarker, 3);
+
+            uint32_t frame_len = fb->len;
+            Serial.write((uint8_t *)&frame_len, sizeof(frame_len));
+
+            size_t bytes_written = Serial.write(fb->buf, fb->len);
+            if (bytes_written != fb_len) {
+                Serial.printf("[Transmitter] Warning: Only %u/%u bytes written!\n", (unsigned int)bytes_written, (unsigned int)fb->len);
+            }
+
+            const char *endMarker = "*E*";
+            Serial.write(endMarker, 3);
+
+            esp_camera_fb_return(fb);
+        }
+        vTaskDelay(pdMS_TO_TICKS(5));
+    }   
     printf("Transmission running");
-}
 }
