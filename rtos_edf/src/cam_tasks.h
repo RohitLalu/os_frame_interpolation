@@ -9,8 +9,6 @@
 #include <freertos/task.h>
 #include "task_config.h"
 
-// Canonical type definition for EdfTaskInfo. Put the type in the header so all
-// translation units agree on the layout.
 typedef struct {
     TaskHandle_t handle;
     const char* taskName;
