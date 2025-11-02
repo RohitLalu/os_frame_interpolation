@@ -111,15 +111,12 @@ import cv2
 import numpy as np
 import struct
 
-# --- Configuration ---
-SERIAL_PORT = "/dev/cu.usbserial-A5XK3RJT" # Change this!
+SERIAL_PORT = "/dev/cu.usbserial-A5XK3RJT" 
 BAUD_RATE = 921600
 IMAGE_START_MARKER = b'*S*'
 WORD_START_MARKER = b'*A*'
-# ---------------------
 
 def decode_jpeg_to_bgr(frame_data):
-    """Converts a raw JPEG byte buffer to an OpenCV BGR frame."""
     try:
         frame = cv2.imdecode(np.frombuffer(frame_data, dtype=np.uint8), cv2.IMREAD_COLOR)
         return frame
@@ -142,10 +139,7 @@ def main():
     
     while True:
         try:
-            # 1. Wait for the start marker
             ser.read_until(IMAGE_START_MARKER)
-            
-            # 2. Read the 4-byte length
             len_bytes = ser.read(4)
             if len(len_bytes) != 4:
                 print("Timeout: Could not read frame length")
@@ -159,18 +153,14 @@ def main():
                 ser.flushInput()
                 continue
 
-            # 3. Read the JPEG data
             frame_data = ser.read(frame_len)
             if len(frame_data) != frame_len:
                 print(f"Timeout: Incomplete frame data. Expected {frame_len}, got {len(frame_data)}")
                 continue
 
-            # 4. Decode the new frame
             new_frame = decode_jpeg_to_bgr(frame_data)
             
-            if new_frame is not None:
-                # --- This is your interpolation logic, now on the PC ---
-                
+            if new_frame is not None:                
                 # Shift frames: B becomes A, new_frame becomes B
                 frameA = frameB
                 frameB = new_frame
@@ -179,16 +169,10 @@ def main():
                 cv2.imshow("Raw 3 FPS Stream (Frame B)", frameB)
 
                 if frameA is not None:
-                    # We now have two frames, so we can interpolate.
-                    # Your "moving average" logic:
-                    # Note: cv2.addWeighted is a fast way to average
                     interp_frame = cv2.addWeighted(frameA, 0.5, frameB, 0.5, 0.0)
-                    
-                    # Display all three frames for comparison
                     cv2.imshow("Previous Frame (Frame A)", frameA)
                     cv2.imshow("Interpolated Frame", interp_frame)
                 
-            # Break loop on 'q' press
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
                 
